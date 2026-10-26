@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (fork iagogfe)
+
+- Removed automatic updates: the GitHub release downloader, `update/pending.txt` staging and restart install, the Metamod VDF swap, `cs2fow_auto_update`, and `cs2fow_check_update`. The plugin no longer makes network requests. miniz, PicoSHA2 and the Windows `steam_api64` link, used only by the updater, were dropped.
+
 ## 0.3.6
 
 - Updated the strict Windows and Linux gamedata fingerprints and private addresses for CS2 build `24537688` (`1.41.7.4`). Unknown binaries remain fail-open.

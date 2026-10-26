@@ -90,6 +90,14 @@ You need a Windows or Linux CS2 dedicated server with [Metamod:Source](https://w
 
 This legacy version doesn't receive updates anymore. After a CS2 update it may switch itself off rather than risk hiding the wrong player.
 
+### No automatic updates in this fork
+
+This fork removed the automatic updater (`cs2fow_auto_update`, `cs2fow_check_update`, the GitHub release downloader, `update/pending.txt` and the `.vdf` swap). CS2FOW never downloads or runs remote code and makes no network requests. To update, build from source and replace the files yourself.
+
+If you are replacing an upstream build, check that `addons/metamod/cs2fow.vdf` points to `addons/cs2fow/bin/<platform>/cs2fow` (no `-update` suffix) and delete `addons/cs2fow/update/` if it exists. A stale `cs2fow_auto_update` line in an old `cs2fow.cfg` is no longer recognized; delete it.
+
+The automatic baker still runs two local programs from the package, at fixed paths: `tools/cs2fow_baker` (built from this repository) and `tools/vrf/<platform>/Source2Viewer-CLI` (ValveResourceFormat 19.2, a prebuilt third-party .NET tool fetched by `scripts/bootstrap.py` at build time with a pinned SHA-256). Neither is downloaded, replaced or made executable at runtime.
+
 ## Settings you may want to change
 
 Everything lives in `cfg/cs2fow.cfg`, and every option is explained there. After a change, type `cs2fow_reload`. Keep the last line of that file (`cs2fow_config_loaded`) where it is.

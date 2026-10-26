@@ -75,10 +75,6 @@ public:
 
 	bool valid() const { return report_.state == compatibility_state::compatible; }
 	const compatibility_report &report() const { return report_; }
-	server_binary_fingerprint detected_server_binary_fingerprint() const
-	{
-		return detected_server_binary_fingerprint_;
-	}
 	const schema_offsets &fields() const { return fields_; }
 	const smoke_private_layout &smoke_layout() const { return smoke_layout_; }
 	const checktransmit_private_offsets &transmit_offsets() const { return transmit_offsets_; }
@@ -122,7 +118,6 @@ private:
 	uint32_t remove_entity_rva_ {};
 	uint32_t teleport_vtable_index_ {};
 	server_binary_fingerprint server_binary_fingerprint_ {};
-	server_binary_fingerprint detected_server_binary_fingerprint_;
 	bool weapon_item_schema_available_ {};
 	bool smoke_schema_available_ {};
 	bool debug_beam_schema_available_ {};
