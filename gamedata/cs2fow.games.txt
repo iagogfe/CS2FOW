@@ -1,12 +1,13 @@
 // CS2FOW private runtime compatibility data.
-// Verified against the public CS2 app build 24537688 (1.41.7.4).
+// Windows verified against the public CS2 app build 24537688 (1.41.7.4).
+// Linux verified against build 26144732 (1.41.9.2, ServerVersion 2000935).
 // Unknown binaries fail open. Keep exactly one fingerprint per platform.
 
 // Exact server binaries (file size and CRC32).
 server_binary_size_windows=32818840
 server_binary_crc32_windows=1451045147
-server_binary_size_linux=40344184
-server_binary_crc32_linux=1097984287
+server_binary_size_linux=41804088
+server_binary_crc32_linux=2260596490
 
 // CCheckTransmitInfo private layout.
 recipient_slot_offset_windows=576
@@ -20,25 +21,25 @@ game_entity_system_offset_linux=80
 
 // Module-relative server function and vtable addresses.
 game_event_manager_vtable_rva_windows=24771832
-game_event_manager_vtable_rva_linux=38413048
+game_event_manager_vtable_rva_linux=40168696
 lookup_bone_rva_windows=11525088
-lookup_bone_rva_linux=22924928
+lookup_bone_rva_linux=23373968
 get_bone_transform_rva_windows=11465024
-get_bone_transform_rva_linux=22925488
+get_bone_transform_rva_linux=23374528
 create_entity_by_name_rva_windows=12053024
-create_entity_by_name_rva_linux=23781248
+create_entity_by_name_rva_linux=24296192
 dispatch_spawn_rva_windows=12772832
-dispatch_spawn_rva_linux=24684864
+dispatch_spawn_rva_linux=25233728
 remove_entity_rva_windows=12312448
-remove_entity_rva_linux=23782048
+remove_entity_rva_linux=24296992
 
 // CBaseEntity virtual function indexes used by temporary LOS debug beams.
 teleport_vtable_index_windows=163
-teleport_vtable_index_linux=162
+teleport_vtable_index_linux=164
 
 // CSmokeGrenadeProjectile::SmokeVolume private voxel layout.
 smoke_volume_offset_windows=2776
-smoke_volume_offset_linux=3504
+smoke_volume_offset_linux=3736
 smoke_storage_offset_windows=112
 smoke_storage_offset_linux=112
 smoke_frame_offset_windows=236
