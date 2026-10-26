@@ -104,9 +104,31 @@ CON_COMMAND_F(cs2fow_entity, "List, filter, or clear actual CS2FOW transmit clea
 	g_plugin.print_entities(edict);
 }
 
-SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, false, bool, bool, bool);
-SH_DECL_HOOK7_void(ISource2GameEntities, CheckTransmit, SH_NOATTRIB, false, CCheckTransmitInfo **, int, CBitVec<MAX_EDICTS> &, CBitVec<MAX_EDICTS> &, const Entity2Networkable_t **, const uint16 *, int);
-SH_DECL_HOOK2(IGameEventManager2, LoadEventsFromFile, SH_NOATTRIB, false, int, const char *, bool);
+// Metamod build 1461+ (0cc4e20) no longer gives plugins SourceHook; these are KHook vtable hooks.
+static KHook::Return<void> on_game_frame_post(IServerGameDLL *, bool simulating, bool first_tick, bool last_tick)
+{
+	g_plugin.hook_game_frame(simulating, first_tick, last_tick);
+	return {KHook::Action::Ignore};
+}
+
+static KHook::Return<void> on_check_transmit_post(ISource2GameEntities *, CCheckTransmitInfo **infos, int count, CBitVec<MAX_EDICTS> &a,
+	CBitVec<MAX_EDICTS> &b, const Entity2Networkable_t **networkables, const uint16 *indices, int entities)
+{
+	g_plugin.hook_check_transmit(infos, count, a, b, networkables, indices, entities);
+	return {KHook::Action::Ignore};
+}
+
+static KHook::Return<int> on_load_events_from_file_post(IGameEventManager2 *manager, const char *, bool)
+{
+	g_plugin.hook_load_events_from_file(manager);
+	return {KHook::Action::Ignore, 0};
+}
+
+static KHook::Virtual<IServerGameDLL, void, bool, bool, bool> s_game_frame_hook(&IServerGameDLL::GameFrame, nullptr, on_game_frame_post);
+static KHook::Virtual<ISource2GameEntities, void, CCheckTransmitInfo **, int, CBitVec<MAX_EDICTS> &, CBitVec<MAX_EDICTS> &,
+	const Entity2Networkable_t **, const uint16 *, int> s_check_transmit_hook(&ISource2GameEntities::CheckTransmit, nullptr, on_check_transmit_post);
+static KHook::Virtual<IGameEventManager2, int, const char *, bool> s_load_events_hook(&IGameEventManager2::LoadEventsFromFile, nullptr,
+	on_load_events_from_file_post);
 
 bool plugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool late)
 {
@@ -122,17 +144,13 @@ bool plugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool l
 	GET_V_IFACE_ANY(GetServerFactory, game_entities_, ISource2GameEntities, SOURCE2GAMEENTITIES_INTERFACE_VERSION);
 	GET_V_IFACE_ANY(GetEngineFactory, g_pNetworkServerService, INetworkServerService, NETWORKSERVERSERVICE_INTERFACE_VERSION);
 	g_pCVar = cvar_;
-	game_frame_hook_id_ = SH_ADD_HOOK(IServerGameDLL, GameFrame, server_, SH_MEMBER(this, &plugin::hook_game_frame), true);
-	check_transmit_hook_id_ = SH_ADD_HOOK(ISource2GameEntities, CheckTransmit, game_entities_, SH_MEMBER(this, &plugin::hook_check_transmit), true);
-	if (game_frame_hook_id_ == 0 || check_transmit_hook_id_ == 0)
+	if (server_ == nullptr || game_entities_ == nullptr || KHook::__exported__khook == nullptr)
 	{
-		if (game_frame_hook_id_ != 0) SH_REMOVE_HOOK_ID(game_frame_hook_id_);
-		if (check_transmit_hook_id_ != 0) SH_REMOVE_HOOK_ID(check_transmit_hook_id_);
-		game_frame_hook_id_ = 0;
-		check_transmit_hook_id_ = 0;
-		if (error != nullptr && maxlen != 0) ismm->Format(error, maxlen, "Could not install required SourceHook hooks");
+		if (error != nullptr && maxlen != 0) ismm->Format(error, maxlen, "Could not install required KHook hooks");
 		return false;
 	}
+	s_game_frame_hook.Add(server_);
+	s_check_transmit_hook.Add(game_entities_);
 	game_events_ = static_cast<IGameEventManager2 *>(ismm->VInterfaceMatch(ismm->GetEngineFactory(), k_game_event_manager_interface));
 	if (game_events_ == nullptr)
 	{
@@ -157,9 +175,10 @@ bool plugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool l
 	{
 		auto *vtable = static_cast<IGameEventManager2 *>(
 			compatibility_.game_event_manager_vtable());
-		game_event_load_hook_id_ = SH_ADD_DVPHOOK(IGameEventManager2,
-			LoadEventsFromFile, vtable,
-			SH_MEMBER(this, &plugin::hook_load_events_from_file), true);
+		// AddGlobal reads the vtable through its argument, so pass the address of a pointer to the vtable.
+		void *game_event_manager_vtable = vtable;
+		s_load_events_hook.AddGlobal(reinterpret_cast<IGameEventManager2 *>(&game_event_manager_vtable));
+		game_event_load_hooked_ = true;
 	}
 	if (!compatibility_.valid())
 	{
@@ -172,7 +191,7 @@ bool plugin::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool l
 	{
 		META_CONPRINTF("[CS2FOW] smoke occlusion unavailable; wall filtering remains active\n");
 	}
-	else if (!he_event_available_ && game_event_load_hook_id_ == 0)
+	else if (!he_event_available_ && !game_event_load_hooked_)
 	{
 		META_CONPRINTF("[CS2FOW] HE smoke clearing unavailable; ordinary smoke remains active\n");
 	}
@@ -186,25 +205,23 @@ bool plugin::Unload(char *error, size_t max_length)
 	if (game_events_ != nullptr) game_events_->RemoveListener(this);
 	game_events_ = nullptr;
 	he_event_available_ = false;
-	if (game_event_load_hook_id_ != 0) SH_REMOVE_HOOK_ID(game_event_load_hook_id_);
-	game_event_load_hook_id_ = 0;
+	// ClearHooks detaches our targets; Metamod removes the vtable patches when it unloads the plugin.
+	s_load_events_hook.ClearHooks();
+	game_event_load_hooked_ = false;
 	automatic_baker_.stop();
 	worker_.stop();
 	destroy_los_debug_beams();
-	if (game_frame_hook_id_ != 0) SH_REMOVE_HOOK_ID(game_frame_hook_id_);
-	if (check_transmit_hook_id_ != 0) SH_REMOVE_HOOK_ID(check_transmit_hook_id_);
-	game_frame_hook_id_ = 0;
-	check_transmit_hook_id_ = 0;
+	s_game_frame_hook.ClearHooks();
+	s_check_transmit_hook.ClearHooks();
 	settings::cancel_load();
 	settings::shutdown();
 	ConVar_Unregister();
 	return true;
 }
 
-int plugin::hook_load_events_from_file(const char *, bool)
+void plugin::hook_load_events_from_file(IGameEventManager2 *manager)
 {
-	game_events_ = META_IFACEPTR(IGameEventManager2);
-	RETURN_META_VALUE(MRES_IGNORED, 0);
+	game_events_ = manager;
 }
 
 void plugin::FireGameEvent(IGameEvent *event)

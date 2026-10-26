@@ -81,7 +81,7 @@ configure(plugin.compiler, True)
 plugin.compiler.cxxincludes += [
   os.path.join(root, 'src', 'plugin'),
   os.path.join(config.mms_root, 'core'),
-  os.path.join(config.mms_root, 'core', 'sourcehook'),
+  os.path.join(config.mms_root, 'third_party', 'khook', 'include'),
   os.path.join(sdk['path'], 'public', 'entity2'),
 ]
 for manifest in config.sdk_manifests:

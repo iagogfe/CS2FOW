@@ -135,7 +135,7 @@ public:
 	void hook_game_frame(bool simulating, bool first_tick, bool last_tick);
 	void hook_check_transmit(CCheckTransmitInfo **infos, int count, CBitVec<MAX_EDICTS> &, CBitVec<MAX_EDICTS> &,
 		const Entity2Networkable_t **, const uint16 *, int);
-	int hook_load_events_from_file(const char *filename, bool search_all);
+	void hook_load_events_from_file(IGameEventManager2 *manager);
 	void FireGameEvent(IGameEvent *event) override;
 	void print_status() const;
 	void print_metrics() const;
@@ -201,9 +201,7 @@ private:
 	IGameEventManager2 *game_events_ {};
 	game_resource_service *game_resource_ {};
 	runtime_compatibility compatibility_;
-	int game_frame_hook_id_ {};
-	int check_transmit_hook_id_ {};
-	int game_event_load_hook_id_ {};
+	bool game_event_load_hooked_ {};
 	std::string map_;
 	std::string pending_map_;
 	std::string disabled_reason_ {"no map loaded"};

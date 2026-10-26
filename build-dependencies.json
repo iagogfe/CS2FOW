@@ -5,7 +5,7 @@
   },
   "metamod": {
     "url": "https://github.com/alliedmodders/metamod-source.git",
-    "commit": "2667e8e5947237c4cb7ea45cec3913ad6a44757c"
+    "commit": "170058a2f0dbd58106b7c76bfe88a94672295356"
   },
   "hl2sdk_manifests": {
     "url": "https://github.com/alliedmodders/hl2sdk-manifests.git",
@@ -13,7 +13,7 @@
   },
   "hl2sdk": {
     "url": "https://github.com/alliedmodders/hl2sdk.git",
-    "commit": "159cddd44cef4d9d607ef4ec4ac9f85cf056494c"
+    "commit": "625bfd4e39816ad0e1eae3b3144a3b5425c5c7a0"
   },
   "vrf": {
     "version": "19.2",
